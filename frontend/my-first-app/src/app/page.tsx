@@ -1,52 +1,109 @@
 'use client'
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
-import { v4 as uuidv4 } from "uuid";
 import { Trash, Check } from "lucide-react";
 
 interface Task {
-  id: string;
-  text: string;
-  completed: boolean;
-  dueDate?: string;
+  id: number;
+  task: string;
+  is_complete: number;
+  due_date: string | null;
 }
 
+const API_URL = "http://localhost:8000";
+
 const TodoApp: React.FC = () => {
-  // id: uuidv4() is used to generate a unique id for each task
-  // text: "Buy groceries" is the task text
-  // comleted: false is the task status
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: uuidv4(), text: "Buy groceries", completed: false },
-    { id: uuidv4(), text: "Read a book", completed: true },
-  ]);
-  // newTask: 文字列型
-  // setNewTask: Reactが提供している関数
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
   const [newDueDate, setNewDueDate] = useState("");
 
-  console.log(newTask);
+  // タスク一覧の取得
+  const fetchTasks = async () => {
+    try {
+      const response = await fetch(`${API_URL}/tasks`);
+      const data = await response.json();
+      setTasks(data);
+    } catch (error) {
+      console.error("タスクの取得に失敗しました:", error);
+    }
+  };
 
-  const addTask = () => {
-    // trim(): 文字列先頭から末尾までの空白を除去
+  // 初回読み込み時にタスクを取得
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  // タスクの追加
+  const addTask = async () => {
     if (newTask.trim() === "") return;
-    setTasks([...tasks, { id: uuidv4(), text: newTask, completed: false, dueDate: newDueDate }]);
-    setNewTask("");
-    setNewDueDate("");
+
+    try {
+      const response = await fetch(`${API_URL}/tasks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          task: newTask,
+          is_complete: 0,
+          due_date: newDueDate || null,
+          id: null
+        }),
+      });
+
+      if (response.ok) {
+        fetchTasks(); // タスク一覧を再取得
+        setNewTask("");
+        setNewDueDate("");
+      }
+    } catch (error) {
+      console.error("タスクの追加に失敗しました:", error);
+    }
   };
 
-  const toggleTask = (id: string) => {
-    setTasks(tasks.map(task => (task.id === id ? { ...task, completed: !task.completed } : task)));
+  // タスクの完了状態を切り替え
+  const toggleTask = async (task: Task) => {
+    try {
+      const response = await fetch(`${API_URL}/tasks/${task.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...task,
+          is_complete: task.is_complete ? 0 : 1,
+        }),
+      });
+
+      if (response.ok) {
+        fetchTasks();
+      }
+    } catch (error) {
+      console.error("タスクの更新に失敗しました:", error);
+    }
   };
 
-  const removeTask = (id: string) => {
-    setTasks(tasks.filter(task => task.id !== id));
+  // タスクの削除
+  const removeTask = async (id: number) => {
+    try {
+      const response = await fetch(`${API_URL}/tasks/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchTasks();
+      }
+    } catch (error) {
+      console.error("タスクの削除に失敗しました:", error);
+    }
   };
 
-  const calculateRemainingDays = (dueDate: string) => {
+  const calculateRemainingDays = (dueDate: string | null) => {
+    if (!dueDate) return null;
     const today = new Date();
     const due = new Date(dueDate);
     const diffTime = due.getTime() - today.getTime();
@@ -55,12 +112,9 @@ const TodoApp: React.FC = () => {
   }
 
   return (
-    // div: タグ名
     <div className="max-w-md mx-auto p-6 bg-white shadow-lg rounded-2xl space-y-4">
       <h1 className="text-xl font-bold text-center">To-Do List</h1>
       <div className="flex gap-2">
-        {/* Input: React関数 ToDoAppと同じもの  */}
-        {/* onChangeには関数を渡している */}
         <Input
           value={newTask}
           onChange={(e) => setNewTask(e.target.value)}
@@ -82,18 +136,18 @@ const TodoApp: React.FC = () => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
           >
-            <Card className={`p-2 flex justify-between items-center ${task.completed ? "bg-gray-200" : ""}`}>
-              <span className={`flex-1 ${task.completed ? "line-through text-gray-500" : ""}`}>
-                {task.text}
-                {task.dueDate && (
+            <Card className={`p-2 flex justify-between items-center ${task.is_complete ? "bg-gray-200" : ""}`}>
+              <span className={`flex-1 ${task.is_complete ? "line-through text-gray-500" : ""}`}>
+                {task.task}
+                {task.due_date && (
                   <span className="block text-xs text-gray-500">
-                    Due: {task.dueDate} ({calculateRemainingDays(task.dueDate)})
+                    Due: {task.due_date} ({calculateRemainingDays(task.due_date)})
                   </span>
                 )}
-                </span>
+              </span>
               <div className="flex gap-2">
-                <Button size="icon" variant="ghost" onClick={() => toggleTask(task.id)}>
-                  <Check className="w-5 h-5 text-green-500" />
+                <Button size="icon" variant="ghost" onClick={() => toggleTask(task)}>
+                  <Check className={`w-5 h-5 ${task.is_complete ? "text-green-500" : "text-gray-500"}`} />
                 </Button>
                 <Button size="icon" variant="ghost" onClick={() => removeTask(task.id)}>
                   <Trash className="w-5 h-5 text-red-500" />
