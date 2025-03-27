@@ -136,8 +136,22 @@ const TodoApp: React.FC = () => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 10 }}
           >
-            <Card className={`p-2 flex justify-between items-center ${task.is_complete ? "bg-gray-200" : ""}`}>
-              <span className={`flex-1 ${task.is_complete ? "line-through text-gray-500" : ""}`}>
+
+            {/* p-2: パディングを設定
+                flex: 要素をフレックスコンテナにする。,
+                justify-between: フレックスコンテナ内のアイテムを両端に配置し、間にスペースを均等に配置。
+                items-center: フレックスコンテナ内のアイテムを縦方向の中央に揃える。
+                bg-gray-200: 背景をグレー(200)に設定。
+                line-through: テキストに取り消し線を追加。
+                text-gray-500: テキストの色をグレー(500)に設定する。*/}
+
+            {/* flexが含まれているため、ここのCardコンポーネントがフレックスコンテナになる */}
+            <Card className={`p-2 flex justify-between ${task.is_complete ? "bg-gray-200" : ""}`}>
+              {/* flex-1: 要素をフレックスアイテムにする。 */}
+              {/* flex-grow: 要素をフレックスアイテムにし、フレックスアイテムが余白を埋めるようにする。 */}
+              {/* task.is_completeがtrueの場合、line-throughクラスを追加し、テキストに取り消し線を追加する */}
+              {/* task.is_completeがtrueの場合、text-gray-500クラスを追加し、テキストの色をグレー(500)に設定する */}
+              <span className={`flex-grow ${task.is_complete ? "line-through text-gray-500" : ""}`}>
                 {task.task}
                 {task.due_date && (
                   <span className="block text-xs text-gray-500">
@@ -145,14 +159,20 @@ const TodoApp: React.FC = () => {
                   </span>
                 )}
               </span>
-              <div className="flex gap-2">
+              {/* gap-2: 要素間の間隔を2に設定 */}
+              {/* flex-shrink-0: 要素をフレックスアイテムにし、フレックスアイテムが縮むことを禁止する */}
+              {/* Buttonコンポーネントのsize="icon"を指定することで、アイコンボタンになる */}
+              {/* variant="ghost"を指定することで、ボタンの背景が透明になる */}
+              <span className="flex-grow gap-2">
+                {/* onClickで、タスクの完了状態を切り替える関数を呼び出す */}
                 <Button size="icon" variant="ghost" onClick={() => toggleTask(task)}>
                   <Check className={`w-5 h-5 ${task.is_complete ? "text-green-500" : "text-gray-500"}`} />
                 </Button>
+                {/* onClickで、タスクの削除関数を呼び出す */}
                 <Button size="icon" variant="ghost" onClick={() => removeTask(task.id)}>
                   <Trash className="w-5 h-5 text-red-500" />
                 </Button>
-              </div>
+              </span>
             </Card>
           </motion.div>
         ))}
